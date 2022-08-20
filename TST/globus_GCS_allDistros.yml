@@ -76,7 +76,7 @@
           ansible.builtin.dnf:
                 name: globus-connect-server54
                 disablerepo: "Globus-Connect-Server-5-Stable"
-                enablerepo: "Globus-Connect-Server-5-Test"
+                enablerepo: "Globus-Connect-Server-5-Testing"
                 state: present
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
@@ -105,7 +105,7 @@
           yum:
                 name: globus-connect-server54
                 disablerepo: "Globus-Connect-Server-5-Stable"
-                enablerepo: "Globus-Connect-Server-5-Test"
+                enablerepo: "Globus-Connect-Server-5-Testing"
                 state: present
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '7'
@@ -122,10 +122,12 @@
         - name: Debian/Ubuntu Disable Globus Prod Repo
           shell: "sed -i 's/^/#/' globus-connect-server-stable-*.list"
           become: True
+          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
 
         - name: Debian/Ubuntu Enable Globus Test Repo
           shell: "sed -i 's/^# //' globus-connect-server-testing-*.list"
           become: True
+          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
 
         - name: Install PIP
           apt:
