@@ -3,7 +3,7 @@
 # ===========
 
 - name: Setup Globus 
-  hosts: all
+  hosts: globusv5-current
     #  vars_prompt:
     #
     #          - name: Please register your node at https://developers.globus.org (press enter to continue)
@@ -91,7 +91,7 @@
                 state: present
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
+        
         - name: Install PIP
           dnf:
                 name: python3-pip
@@ -194,10 +194,10 @@
         #Globus
         ##########################################
         - name: Add our Globus_SDK_Env, ClientID and Secret to Default users .bashrc
-          shell: "echo 'export GLOBUS_SDK_ENVIRONMENT=test' >> ~/.bashrc; echo export clientID=\"{{ hostvars[inventory_hostname]['globus_clientID'] }}'\" >> ~/.bashrc; echo export secret=\"'{{ hostvars[inventory_hostname]['globus_secret'] }}'\" >> ~/.bashrc"
+          shell: "echo export clientID=\"{{ hostvars[inventory_hostname]['globus_clientID'] }}'\" >> ~/.bashrc; echo export secret=\"'{{ hostvars[inventory_hostname]['globus_secret'] }}'\" >> ~/.bashrc"
 
         - name: Globus endpoint setup - this will take several minutes
-          shell: "GLOBUS_SDK_ENVIRONMENT=test /usr/sbin/globus-connect-server endpoint setup '{{ hostvars[inventory_hostname]['endpoint_name'] }}' --agree-to-letsencrypt-tos --organization '{{ hostvars[inventory_hostname]['globus_org']  }}' --owner '{{ hostvars[inventory_hostname]['globus_owner']  }}' --contact-email '{{ hostvars[inventory_hostname]['globus_owner']  }}' --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
+          shell: " /usr/sbin/globus-connect-server endpoint setup '{{ hostvars[inventory_hostname]['endpoint_name'] }}' --agree-to-letsencrypt-tos --organization '{{ hostvars[inventory_hostname]['globus_org']  }}' --owner '{{ hostvars[inventory_hostname]['globus_owner']  }}' --contact-email '{{ hostvars[inventory_hostname]['globus_owner']  }}' --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
 
             #- name: Print Endpoint name variable being used to create Endpoint
             #  var: "{{ hostvars[inventory_hostname]['endpoint_name'] }}"
@@ -215,7 +215,7 @@
             #  var: "{{ hostvars[inventory_hostname]['globus_secret'] }}"
 
         - name: Globus Node Setup
-          shell: "GLOBUS_SDK_ENVIRONMENT=test /usr/sbin/globus-connect-server node setup --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
+          shell: " /usr/sbin/globus-connect-server node setup --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
           become: True
         
             # - name: Retrieve Node Auth URL
