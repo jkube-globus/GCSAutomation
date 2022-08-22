@@ -4,33 +4,73 @@
 
 - name: Setup Globus 
   hosts: all
-  vars_prompt:
-
-          - name: Please register your node at https://developers.globus.org (press enter to continue)
-
-          - name: NodeName 
-            prompt: What would you like to name your node?
-            private: no
-
-          - name: OrganizationName 
-            prompt: What is the name of your Organization in Globus?
-            private: no
-
-          - name: NodeOwner 
-            prompt: Email address/GlobusID of the owner of the node? (eg. admin@example.edu)
-            private: no
-
-
-          - name: NodeClientID 
-            prompt: What is your nodes client id?
-            private: no
-
-          - name: NodeSecret  
-            prompt: What is your nodes secret value?
-            private: yes
+    #  vars_prompt:
+    #
+    #          - name: Please register your node at https://developers.globus.org (press enter to continue)
+    #
+    #          - name: NodeName 
+    #            prompt: What would you like to name your node?
+    #            private: no
+    #
+    #          - name: OrganizationName 
+    #            prompt: What is the name of your Organization in Globus?
+    #            private: no
+    #
+    #          - name: NodeOwner 
+    #            prompt: Email address/GlobusID of the owner of the node? (eg. admin@example.edu)
+    #            private: no
+    #
+    #
+    #          - name: NodeClientID 
+    #            prompt: What is your nodes client id?
+    #            private: no
+    #
+    #          - name: NodeSecret  
+    #            prompt: What is your nodes secret value?
+    #            private: yes
 
 
   tasks:
+        ##########################################
+        #Blah - need some output
+        ##########################################
+        #- name: Distribution and release debug info
+        #  ansible.builtin.debug:
+        #    msg: "{{ inventory_hostname }} has ans_distro: {{ ansible_distribution }} and release version: {{ ansible_distribution_major_version }}"
+
+        ##########################################
+        #Debian GCSv4 install
+        ##########################################
+        - name: Install GCSv4 Repository on Debian based distros
+          apt:
+            deb: https://downloads.globus.org/toolkit/globus-connect-server/globus-connect-server-repo_latest_all.deb
+          become: True
+            #when: ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] == 20
+          when:  ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int <= 20
+
+            #- name: Add Globus Repo key
+            #  shell: "sudo apt-key add /usr/share/globus-repo/RPM-GPG-KEY-Globus"
+            #  when:  ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int <= 20
+
+        - name: Install Globus Connect Server v4- Debian based distros 
+          apt:
+                name: globus-connect-server
+                state: present
+                update_cache: yes
+          become: True
+          when:  ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int <= 20
+
+
+        - name: GCSv4 GCS.conf file (Templated)
+          ansible.builtin.template:
+            src: templates/gcsv4-etc_globus-connect-server.j2
+            dest: /etc/globus-connect-server.conf
+            owner: root
+            group: root
+            mode: '0644'
+          become: True
+          when:  ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int <= 20
+ 
         ##########################################
         #CENTOS Generic
         ##########################################
@@ -41,7 +81,7 @@
                 state: present
           become: True
           when: ansible_facts['os_family'] == 'RedHat' 
-
+        
         ##########################################
         #CENTOS 8
         ##########################################
@@ -51,28 +91,28 @@
                 state: latest
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
+        
         - name: Install PIP
           dnf:
                 name: python3-pip
                 state: latest
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
+        
         - name: CentOS8 Install pexpect Python package
           pip:
                 name: pexpect
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
+        
             #- name: Enable Globus Repository on CentOS 8
             #  dnf:
             #        name: 'https://downloads.globus.org/globus-connect-server/testing/installers/repo/rpm/globus-repo-latest.noarch.rpm'
             #        state: present
             #  become: True
             #  when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
-        - name: Install Globus Connect Server 
+        
+        - name: Install Globus Connect Server v5- RHEL based distros 
           ansible.builtin.dnf:
                 name: globus-connect-server54
                 disablerepo: "Globus-Connect-Server-5-Stable"
@@ -80,9 +120,9 @@
                 state: present
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '8'
-
-
-
+        
+        
+        
         ##########################################
         #CENTOS 7
         ##########################################
@@ -92,16 +132,16 @@
                 state: latest
           become: True
           when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '7'
-
+        
             #- name: Enable Globus Repository on CentOS 7
             #  yum:
             #        name: 'https://downloads.globus.org/globus-connect-server/testing/installers/repo/rpm/globus-repo-latest.noarch.rpm'
             #        state: present
             #  become: True
             #  when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] == '7'
-
+        
           
-        - name: Install Globus Connect Server 
+        - name: Install Globus Connect Server v5- RHEL based distros 
           yum:
                 name: globus-connect-server54
                 disablerepo: "Globus-Connect-Server-5-Stable"
@@ -113,69 +153,88 @@
         ##########################################
         #Debian based distros
         ##########################################
-        - name: Install Globus Repository on Debian based distros
+        - name: Install GCSv5 Repository on Debian based distros
           apt:
             deb: https://downloads.globus.org/globus-connect-server/stable/installers/repo/deb/globus-repo_latest_all.deb
           become: True
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
-
-        - name: Debian/Ubuntu Disable Globus Prod Repo
-          shell: "sed -i 's/^/#/' globus-connect-server-stable-*.list"
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+        
+        - name: Debian/Ubuntu Disable GCSv5 Prod Repo
+          shell: "sed -i 's/^/#/' /etc/apt/sources.list.d/globus-connect-server-stable-*.list"
           become: True
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
-
-        - name: Debian/Ubuntu Enable Globus Test Repo
-          shell: "sed -i 's/^# //' globus-connect-server-testing-*.list"
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+        
+        - name: Debian/Ubuntu Enable GCSv5 Test Repo
+          shell: "sed -i 's/^# //' /etc/apt/sources.list.d/globus-connect-server-testing-*.list"
           become: True
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
-
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+        
         - name: Install PIP
           apt:
                 update_cache: yes
                 name: python3-pip
                 state: latest
           become: True
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
-
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+        
         - name: Add Globus Repo key
           shell: "sudo apt-key add /usr/share/globus-repo/RPM-GPG-KEY-Globus"
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
-
-        - name: Install Globus Connect Server 
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+        
+        - name: Install Globus Connect Server v5- Debian based distros 
           apt:
                 name: globus-connect-server54
                 state: present
+                update_cache: yes
           become: True
-          when: ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'Ubuntu' 
- 
-
+          when: ansible_facts['os_family'] == 'Debian' or ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 21
+            
+        
         ##########################################
         #Globus
         ##########################################
+        - name: Add our Globus_SDK_Env, ClientID and Secret to Default users .bashrc
+          shell: "echo 'export GLOBUS_SDK_ENVIRONMENT=test' >> ~/.bashrc; echo export clientID=\"{{ hostvars[inventory_hostname]['globus_clientID'] }}'\" >> ~/.bashrc; echo export secret=\"'{{ hostvars[inventory_hostname]['globus_secret'] }}'\" >> ~/.bashrc"
+
         - name: Globus endpoint setup - this will take several minutes
-          shell: "/usr/sbin/globus-connect-server endpoint setup '{{ NodeName }}' --agree-to-letsencrypt-tos --organization '{{ OrganizationName  }}' --owner '{{ NodeOwner  }}' --client-id '{{ NodeClientID }}' --secret '{{ NodeSecret }}'"
+          shell: "GLOBUS_SDK_ENVIRONMENT=test /usr/sbin/globus-connect-server endpoint setup '{{ hostvars[inventory_hostname]['endpoint_name'] }}' --agree-to-letsencrypt-tos --organization '{{ hostvars[inventory_hostname]['globus_org']  }}' --owner '{{ hostvars[inventory_hostname]['globus_owner']  }}' --contact-email '{{ hostvars[inventory_hostname]['globus_owner']  }}' --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
+
+            #- name: Print Endpoint name variable being used to create Endpoint
+            #  var: "{{ hostvars[inventory_hostname]['endpoint_name'] }}"
+
+            #- name: Print Endpoint Org variable being used to create Endpoint
+            #  var: "{{ hostvars[inventory_hostname]['globus_org']  }}"
+
+            #- name: Print Endpoint Owner variable being used to create Endpoint
+            #  var: "{{ hostvars[inventory_hostname]['globus_owner']  }}"
+            #    
+            #- name: Print Endpoint ClientID variable being used to create Endpoint
+            #  var: "{{ hostvars[inventory_hostname]['globus_clientID'] }}"
+
+            #- name: Print Endpoint ClientSecret variable being used to create Endpoint
+            #  var: "{{ hostvars[inventory_hostname]['globus_secret'] }}"
 
         - name: Globus Node Setup
-          shell: "/usr/sbin/globus-connect-server node setup --client-id '{{ NodeClientID }}' --secret '{{ NodeSecret }}'"
+          shell: "GLOBUS_SDK_ENVIRONMENT=test /usr/sbin/globus-connect-server node setup --client-id '{{ hostvars[inventory_hostname]['globus_clientID'] }}' --secret '{{ hostvars[inventory_hostname]['globus_secret'] }}'"
           become: True
-
-        - name: Retrieve Node Auth URL
-          shell: "nohup /usr/sbin/globus-connect-server login localhost &> nohup.out; grep https nohup.out"
-          register: loginURL
-
-        - name: Enter Globus Node Login
-          pause:
-            prompt: "Please enter code generated from:\n {{ loginURL.stdout }}\n\n"
-          register: authCode
-
-        - name: Globus Node Login
-          expect:
-                command: /usr/sbin/globus-connect-server login localhost
-                responses:
-                        'Enter the resulting Authorization Code here:' : '{{ authCode.user_input }}'
-          register: loginStatus
-
-        - name: Associate EndPoint with Subscription (Managed)
-          shell: globus-connect-server endpoint set-subscription-id DEFAULT
-          register: subsciptionStatus
+        
+            # - name: Retrieve Node Auth URL
+            #   shell: "nohup /usr/sbin/globus-connect-server login localhost &> nohup.out; grep https nohup.out"
+            #   register: loginURL
+            # 
+            # - name: Enter Globus Node Login
+            #   pause:
+            #     prompt: "Please enter code generated from:\n {{ loginURL.stdout }}\n\n"
+            #   register: authCode
+            # 
+            # - name: Globus Node Login
+            #   expect:
+            #         command: /usr/sbin/globus-connect-server login localhost
+            #         responses:
+            #                 'Enter the resulting Authorization Code here:' : '{{ authCode.user_input }}'
+            #   register: loginStatus
+            # 
+            # - name: Associate EndPoint with Subscription (Managed)
+            #   shell: globus-connect-server endpoint set-subscription-id DEFAULT
+            #   register: subsciptionStatus
 
